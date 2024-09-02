@@ -1,33 +1,45 @@
-#include "WiFiUser.h"
- 
-const int resetPin = 0;                    //设置重置按键引脚,用于删除WiFi信息
-int connectTimeOut_s = 15;                 //WiFi连接超时时间，单位秒
- 
-void setup() 
-{
-  pinMode(resetPin, INPUT_PULLUP);     //按键上拉输入模式(默认高电平输入,按下时下拉接到低电平)
-  Serial.begin(115200);                //波特率
-  
-  LEDinit();                           //LED用于显示WiFi状态
-  connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
-}
- 
-void loop() 
-{
-  if (!digitalRead(resetPin)) //长按5秒(P0)清除网络配置信息
-  {
-    delay(5000);              //哈哈哈哈，这样不准确
-    if (!digitalRead(resetPin)) 
-    {
-      Serial.println("\n按键已长按5秒,正在清空网络连保存接信息.");
-      restoreWiFi();     //删除保存的wifi信息
-      ESP.restart();              //重启复位esp32
-      Serial.println("已重启设备.");//有机会读到这里吗？
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+
+
+void setup() {
+    // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+    // it is a good practice to make sure your code sets wifi mode how you want it.
+
+    // put your setup code here, to run once:
+    Serial.begin(115200);
+    pinMode(LED_BUILTIN,OUTPUT);
+    //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
+    WiFiManager wm;
+
+    // reset settings - wipe stored credentials for testing
+    // these are stored by the esp library
+    // wm.resetSettings();
+
+    // Automatically connect using saved credentials,
+    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+    // then goes into a blocking loop awaiting configuration and will return success result
+
+    bool res;
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+    res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
+
+    if(!res) {
+        Serial.println("Failed to connect");
+        // ESP.restart();
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
     }
-  }
-  
-  checkDNS_HTTP();                  //检测客户端DNS&HTTP请求，也就是检查配网页面那部分
-  checkConnect(true);               //检测网络连接状态，参数true表示如果断开重新连接
- 
-  delay(30); 
+
+}
+
+void loop() {
+    // put your main code here, to run repeatedly:   
+    delay(200);
+    digitalWrite(LED_BUILTIN,LOW);
+    delay(200);
+    digitalWrite(LED_BUILTIN,HIGH);
 }
