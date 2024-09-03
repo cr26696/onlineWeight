@@ -223,7 +223,7 @@ void connectToWiFi(int timeOut_s) {
                                        
     if (Connect_time > 2 * timeOut_s)         //长时间连接不上，重新进入配网页面
     { 
-      digitalWrite(LED, LOW);
+      digitalWrite(LED, !LOW);
       Serial.println("");                     //主要目的是为了换行符
       Serial.println("WIFI autoconnect fail, start AP for webconfig now...");
       wifiConfig();                           //开始配网功能
@@ -242,7 +242,7 @@ void connectToWiFi(int timeOut_s) {
     Serial.println(WiFi.gatewayIP());
     Serial.print("WIFI status is:");
     Serial.print(WiFi.status());
-    digitalWrite(LED, HIGH);
+    digitalWrite(LED, !HIGH);
     server.stop();                            //停止开发板所建立的网络服务器。
   }
 }
@@ -268,7 +268,7 @@ void restoreWiFi() {
   Serial.println("连接信息已清空,准备重启设备..");
   delay(10);
   blinkLED(LED, 5, 500); //LED闪烁5次         //关于LED，不需要可删除 
-  digitalWrite(LED, LOW);                    //关于LED，不需要可删除
+  //digitalWrite(LED, LOW);                    //关于LED，不需要可删除
 }
  
 /*
@@ -278,8 +278,8 @@ void checkConnect(bool reConnect)
 {
   if (WiFi.status() != WL_CONNECTED)           //wifi连接失败
   {
-    if (digitalRead(LED) != LOW) 
-      digitalWrite(LED, LOW);
+    if (digitalRead(LED) != !LOW) 
+      digitalWrite(LED, !LOW);
     if (reConnect == true && WiFi.getMode() != WIFI_AP && WiFi.getMode() != WIFI_AP_STA ) 
     {
       Serial.println("WIFI未连接.");
@@ -289,8 +289,8 @@ void checkConnect(bool reConnect)
       connectToWiFi(connectTimeOut_s);          //连接wifi函数 
     }
   } 
-  else if (digitalRead(LED) != HIGH)  
-    digitalWrite(LED, HIGH);                    //wifi连接成功
+  else if (digitalRead(LED) != !HIGH)  
+    digitalWrite(LED, !HIGH);                    //wifi连接成功 灯亮
 }
  
 /*
