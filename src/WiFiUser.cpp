@@ -1,12 +1,14 @@
 #include "WiFiUser.h"
- 
+#include "EEPROM.h"
+
+
 const byte DNS_PORT = 53;                  //设置DNS端口号
 const int webPort = 80;                    //设置Web端口号
- 
+
 const char* AP_SSID  = "设备配网WiFi";        //设置AP热点名称
 //const char* AP_PASS  = "";               //这里不设置设置AP热点密码
  
-const char* HOST_NAME = "MY_ESP32";        //设置设备名
+const char* HOST_NAME = "ESP12F";        //设置设备名
 String scanNetworksID = "";                //用于储存扫描到的WiFi ID
  
 IPAddress apIP(192, 168, 4, 1);            //设置AP的IP地址
@@ -25,6 +27,13 @@ String ROOT_HTML_2 = "<input type=\"password\" name=\"password\" placeholder=\"�
 /*
  * 处理网站根目录的访问请求
  */
+
+const int wifi_ssidlen_add = 1;
+const int wifi_passlen_add = 2;
+const int wifi_ssidval_add = 10;
+const int wifi_passval_add = 30;
+
+
 void handleRoot() 
 {
   if (server.hasArg("selectSSID")) {
@@ -88,7 +97,7 @@ void handleConfigWifi()               //返回http状态
 void handleNotFound()           // 当浏览器请求的网络资源无法在服务器找到时通过此自定义函数处理
 {           
   handleRoot();                 //访问不存在目录则返回配置页面
-  //   server.send(404, "text/plain", "404: Not found");
+  //server.send(404, "text/plain", "404: Not found");
 }
  
 /*
@@ -193,13 +202,15 @@ void connectToWiFi(int timeOut_s) {
   {
     Serial.println("用web配置信息连接.");
     WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str()); //c_str(),获取该字符串的指针
-    wifi_ssid = "";
-    wifi_pass = "";
+    storeWiFiIfo();
+  //  wifi_ssid = "";
+  //  wifi_pass = "";
   } 
   else                                        //未从网页读取到wifi
   {
-    Serial.println("用nvs保存的信息连接.");
-    WiFi.begin();                             //begin()不传入参数，默认连接上一次连接成功的wifi
+    Serial.println("使用上次WiFi信息连接中");
+    //WiFi.begin();
+    WiFi.begin(getWiFiInfo(wifi_ssidval_add),getWiFiInfo(wifi_passval_add));                             //begin()不传入参数，默认连接上一次连接成功的wifi
   }
  
   int Connect_time = 0;                       //用于连接计时，如果长时间连接不成功，复位设备
@@ -311,4 +322,44 @@ void checkDNS_HTTP()
 {
   dnsServer.processNextRequest();   //检查客户端DNS请求
   server.handleClient();            //检查客户端(浏览器)http请求
+}
+
+
+void storeWiFiIfo(){
+  if(wifi_ssid != ""){
+    EEPROM.write(wifi_ssidlen_add,wifi_ssid.length());//存储wifi账号与密码的长度
+    EEPROM.write(wifi_passlen_add,wifi_pass.length());
+
+    for(int i = 0; i < (int)wifi_ssid.length(); i++){
+      EEPROM.write(wifi_ssidval_add+i,wifi_ssid[i]);//存储wifi账号与密码值
+    }
+    for (int i = 0; i < (int)wifi_pass.length(); i++){
+      EEPROM.write(wifi_passval_add+i,wifi_pass[i]);
+    }
+    EEPROM.commit();
+  }
+  else return;
+
+  return;
+}
+
+String getWiFiInfo(int wifi_infoval_add){
+  String wifi_info = "";
+
+  switch (wifi_infoval_add){//判断获取账号还是密码
+  case wifi_ssidval_add:
+    for(int i = 0; i < EEPROM.read(wifi_ssidlen_add); i++){
+      wifi_info += char(EEPROM.read(wifi_ssidval_add+i));
+    }
+    break;
+  case wifi_passval_add:
+    for(int i = 0; i < EEPROM.read(wifi_passlen_add); i++){
+      wifi_info += char(EEPROM.read(wifi_passval_add+i));
+    }
+    break;
+  default:
+    break;
+  }
+
+  return wifi_info;
 }

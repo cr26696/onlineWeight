@@ -28,5 +28,9 @@ void initWebServer();                 //初始化WebServer
 bool scanWiFi();                      //扫描附近的WiFi，为了显示在配网界面
 void wifiConfig();                    //配置配网功能
 void blinkLED(int led, int n, int t); //LED闪烁函数        //用不上LED可删除
- 
+
+//============EEPROM存储信息=================
+void storeWiFiIfo();
+String getWiFiInfo(int wifi_infoval_add);
+
 #endif

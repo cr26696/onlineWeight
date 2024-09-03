@@ -1,10 +1,13 @@
 #include "WiFiUser.h"
- 
+#include "EEPROM.h"
+
 const int resetPin = 0;                    //设置重置按键引脚,用于删除WiFi信息
 int connectTimeOut_s = 15;                 //WiFi连接超时时间，单位秒
  
 void setup() 
 {
+  EEPROM.begin(256);
+
   pinMode(resetPin, INPUT_PULLUP);     //按键上拉输入模式(默认高电平输入,按下时下拉接到低电平)
   Serial.begin(115200);                //波特率
   
