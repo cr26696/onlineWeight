@@ -2,19 +2,23 @@
 #include "EEPROM.h"
 #include <SoftwareSerial.h>
 #include <NetRequest.h>
+#include "HX711.h"
 
 const int resetPin = 0;                    //设置重置按键引脚,用于删除WiFi信息
 int connectTimeOut_s = 15;                 //WiFi连接超时时间，单位秒
 
-String Production_base = "";
-String Batch_number = "";
-String Unique_code = "";
-String User_name = "";
-String Phone_number = "";
+String Production_base = "茶叶基地";
+String Batch_number = "123";
+String Unique_code = "abc";
+String User_name = "王斌彬";
+String Phone_number = "8755";
+String Weight_val = "200";
 
 // 目标服务器的地址和路径
 String remote_host = "code.server.hzyichuan.cn";
 String base_url = "/hello";
+
+unsigned long Weight_Maopi = 0;
 
 void ScanQRcode();
 
@@ -27,7 +31,7 @@ void ScanQRcode();
  * @param employerPhone：员工尾号(int类型)(4位手机尾号)
  * @return 成功返回1 失败则返回0
  * */
-int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone);
+int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight);
 
 void setup() 
 {
@@ -39,6 +43,9 @@ void setup()
   
   //申请一个客户端对象
   WiFiClient client;
+  //connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
+  Init_Hx711();
+  Weight_Maopi = Get_Maopi();
 }
 
 void loop() 
@@ -55,12 +62,17 @@ void loop()
       Serial.println("已重启设�?.");//有机会读到这里吗�?
     }
   }
-  
-  checkDNS_HTTP();                  //检测客户端DNS&HTTP请求，也就是检查配网页面那部分
-  checkConnect(true);               //检测网络连接状态，参数true表示如果断开重新连接
+
+  //Serial.println(Get_Maopi());
+  Serial.println(Get_Weight(Weight_Maopi));
+  delay(500);
+
+  //checkDNS_HTTP();                  //检测客户端DNS&HTTP请求，也就是检查配网页面那部分
+  //checkConnect(true);               //检测网络连接状态，参数true表示如果断开重新连接
   
   ScanQRcode();
-  //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number);
+  UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val);
+  delay(2000);
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编�?
@@ -93,10 +105,10 @@ void ScanQRcode(){  //扫描生产编号或人员编�?
   }
 
 }
-int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone){
+int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight){
   String url = base_url;
 
-  url += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone;
+  url += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
   HTTPS_request(remote_host, url, "", "", 443);
   return 1;
 }
