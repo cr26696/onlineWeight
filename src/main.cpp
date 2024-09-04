@@ -1,6 +1,7 @@
 #include "WiFiUser.h"
 #include "EEPROM.h"
 #include <SoftwareSerial.h>
+#include <NetRequest.h>
 
 const int resetPin = 0;                    //设置重置按键引脚,用于删除WiFi信息
 int connectTimeOut_s = 15;                 //WiFi连接超时时间，单位秒
@@ -11,8 +12,23 @@ String Unique_code = "";
 String User_name = "";
 String Phone_number = "";
 
+// 目标服务器的地址和路径
+String remote_host = "code.server.hzyichuan.cn";
+String base_url = "/hello";
 
 void ScanQRcode();
+
+/**
+ * 功能：发送get请求上报数据
+ * @param baseName ：基地名称(String类型)
+ * @param batchNo：批次号（String类型）
+ * @param boxID：箱体唯一编号（String类型）
+ * @param employerName：员工姓名(String类型)
+ * @param employerPhone：员工尾号(int类型)(4位手机尾号)
+ * @return 成功返回1 失败则返回0
+ * */
+int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone);
+
 void setup() 
 {
   EEPROM.begin(256);
@@ -20,6 +36,9 @@ void setup()
   Serial.begin(9600);                //波特�?
   LEDinit();                           //LED用于显示WiFi状�?
   connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
+  
+  //申请一个客户端对象
+  WiFiClient client;
 }
 
 void loop() 
@@ -41,7 +60,7 @@ void loop()
   checkConnect(true);               //检测网络连接状态，参数true表示如果断开重新连接
   
   ScanQRcode();
-
+  //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number);
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编�?
@@ -73,4 +92,11 @@ void ScanQRcode(){  //扫描生产编号或人员编�?
     else return;
   }
 
+}
+int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone){
+  String url = base_url;
+
+  url += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone;
+  HTTPS_request(remote_host, url, "", "", 443);
+  return 1;
 }
