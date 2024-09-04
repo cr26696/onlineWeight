@@ -30,7 +30,6 @@ void wifiConfig();                    //配置配网功能
 void blinkLED(int led, int n, int t); //LED闪烁函数        //用不上LED可删除
 
 //============EEPROM存储信息=================
-void storeWiFiIfo();
-String getWiFiInfo(int wifi_infoval_add);
-
+void storeWiFiIfoToEEPROM();
+String getWiFiInfoFromEEPROM(int wifi_infoval_add);
 #endif

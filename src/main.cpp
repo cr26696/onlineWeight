@@ -14,6 +14,9 @@ String User_name = "王斌彬";
 String Phone_number = "8755";
 String Weight_val = "200";
 
+// String wifi_ssid = "";                     //暂时存储wifi账号密码
+// String wifi_pass = "";                     //暂时存储wifi账号密码
+
 // 目标服务器的地址和路径
 String remote_host = "code.server.hzyichuan.cn";
 String base_url = "/hello";
@@ -39,8 +42,11 @@ void setup()
   pinMode(resetPin, INPUT_PULLUP);     //按键上拉输入模式(默认高电平输�?,按下时下拉接到低电平)
   Serial.begin(9600);                //波特�?
   LEDinit();                           //LED用于显示WiFi状�?
-  connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
-  
+  //WiFi.mode(WIFI_AP_STA);
+  //connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
+  // wifi_ssid = getWiFiInfoFromEEPROM(wifi_ssidval_add);
+  // wifi_pass = getWiFiInfoFromEEPROM(wifi_passval_add);
+  connectToWiFi(15);
   //申请一个客户端对象
   WiFiClient client;
   //connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
@@ -63,7 +69,7 @@ void loop()
     }
   }
 
-  //Serial.println(Get_Maopi());
+  
   Serial.println(Get_Weight(Weight_Maopi));
   delay(500);
 
@@ -71,7 +77,15 @@ void loop()
   //checkConnect(true);               //检测网络连接状态，参数true表示如果断开重新连接
   
   ScanQRcode();
-  UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val);
+  if(WiFi.status() == WL_CONNECTED){
+    UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val);
+  }
+  else if(WiFi.status() != WL_CONNECTED){
+    while(WiFi.status() != WL_CONNECTED){
+      connectToWiFi(connectTimeOut_s);
+    }
+  }
+ 
   delay(2000);
 }
 

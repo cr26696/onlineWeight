@@ -33,6 +33,7 @@ const int wifi_passlen_add = 2;
 const int wifi_ssidval_add = 10;
 const int wifi_passval_add = 30;
 
+static bool configIsChange = 0;
 
 void handleRoot() 
 {
@@ -75,20 +76,20 @@ void handleConfigWifi()               //返回http状态
     return;
   }
   server.send(200, "text/html", "<meta charset='UTF-8'>SSID：" + wifi_ssid + "<br />password:" + wifi_pass + "<br />已取得WiFi信息,正在尝试连接,请手动关闭此页面。"); //返回保存成功页面
-  delay(2000);
-  WiFi.softAPdisconnect(true);     //参数设置为true，设备将直接关闭接入点模式，即关闭设备所建立的WiFi网络。
-  server.close();                  //关闭web服务
-  WiFi.softAPdisconnect();         //在不输入参数的情况下调用该函数,将关闭接入点模式,并将当前配置的AP热点网络名和密码设置为空值.
+  // delay(2000);
+  // WiFi.softAPdisconnect(true);     //参数设置为true，设备将直接关闭接入点模式，即关闭设备所建立的WiFi网络。
+  // server.close();                  //关闭web服务
+  // WiFi.softAPdisconnect();         //在不输入参数的情况下调用该函数,将关闭接入点模式,并将当前配置的AP热点网络名和密码设置为空值.
   Serial.println("WiFi Connect SSID:" + wifi_ssid + "  PASS:" + wifi_pass);
- 
-  if (WiFi.status() != WL_CONNECTED)    //wifi没有连接成功
-  {
-    Serial.println("开始调用连接函数connectToWiFi()..");
-    connectToWiFi(connectTimeOut_s);
-  } 
-  else {
-    Serial.println("提交的配置信息自动连接成功..");
-  }
+  configIsChange = 1;
+  // if (WiFi.status() != WL_CONNECTED)    //wifi没有连接成功
+  // {
+  //   Serial.println("开始调用连接函数connectToWiFi()..");
+  //   connectToWiFi(connectTimeOut_s);
+  // } 
+  // else {
+  //   Serial.println("提交的配置信息自动连接成功..");
+  // }
 }
  
 /*
@@ -113,9 +114,9 @@ void initSoftAP() {
     Serial.print("Soft-AP IP address = ");
     Serial.println(WiFi.softAPIP());                                                //接入点ip
     Serial.println(String("MAC address = ")  + WiFi.softAPmacAddress().c_str());    //接入点mac
-  } 
+  }
   else                                                  //开启AP热点失败
-  { 
+  {
     Serial.println("WiFiAP Failed");
     delay(1000);
     Serial.println("restart now...");
@@ -188,63 +189,122 @@ bool scanWiFi() {
     return true;
   }
 }
- 
+
+
+
+
 /*
  * 连接WiFi
  */
-void connectToWiFi(int timeOut_s) {
+void connectToWiFi(int timeOut_s) { 
   WiFi.hostname(HOST_NAME);             //设置设备名
   Serial.println("进入connectToWiFi()函数");
   WiFi.mode(WIFI_STA);                        //设置为STA模式并连接WIFI
   WiFi.setAutoConnect(true);                  //设置自动连接    
-  
-  if (wifi_ssid != "")                        //wifi_ssid不为空，意味着从网页读取到wifi
-  {
-    Serial.println("用web配置信息连接.");
-    WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str()); //c_str(),获取该字符串的指针
-    storeWiFiIfo();
-  //  wifi_ssid = "";
-  //  wifi_pass = "";
-  } 
-  else                                        //未从网页读取到wifi
-  {
-    Serial.println("使用上次WiFi信息连接中");
-    //WiFi.begin();
-    WiFi.begin(getWiFiInfo(wifi_ssidval_add),getWiFiInfo(wifi_passval_add));                             //begin()不传入参数，默认连接上一次连接成功的wifi
-  }
- 
-  int Connect_time = 0;                       //用于连接计时，如果长时间连接不成功，复位设备
-  while (WiFi.status() != WL_CONNECTED)       //等待WIFI连接成功
-  {  
-    Serial.print(".");                        //一共打印30个点点
-    digitalWrite(LED, !digitalRead(LED));     
-    delay(500);
-    Connect_time ++;
-                                       
-    if (Connect_time > 2 * timeOut_s)         //长时间连接不上，重新进入配网页面
-    { 
-      digitalWrite(LED, !LOW);
-      Serial.println("");                     //主要目的是为了换行符
-      Serial.println("WIFI autoconnect fail, start AP for webconfig now...");
-      wifiConfig();                           //开始配网功能
-      return;                                 //跳出 防止无限初始化
+
+  WiFi.begin(getWiFiInfoFromEEPROM(wifi_ssidval_add),getWiFiInfoFromEEPROM(wifi_passval_add));
+  Serial.print("使用上次WiFi信息连接中");
+  for(int i =0; i <= timeOut_s*2; i++){
+    Serial.print(".");
+    digitalWrite(LED, !digitalRead(LED));
+    delay(200);
+    if(WiFi.status() == WL_CONNECTED){
+      Serial.println("");
+      Serial.println("WIFI connect Success");
+      Serial.printf("SSID:%s", WiFi.SSID().c_str());
+      Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
+      Serial.print("LocalIP:");
+      Serial.print(WiFi.localIP());
+      Serial.print(" ,GateIP:");
+      Serial.println(WiFi.gatewayIP());
+      Serial.print("WIFI status is:");
+      Serial.print(WiFi.status());
+      digitalWrite(LED, LOW);
+      return;
     }
   }
+
   
-  if (WiFi.status() == WL_CONNECTED)          //如果连接成功
-  {
-    Serial.println("WIFI connect Success");
-    Serial.printf("SSID:%s", WiFi.SSID().c_str());
-    Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
-    Serial.print("LocalIP:");
-    Serial.print(WiFi.localIP());
-    Serial.print(" ,GateIP:");
-    Serial.println(WiFi.gatewayIP());
-    Serial.print("WIFI status is:");
-    Serial.print(WiFi.status());
-    digitalWrite(LED, !HIGH);
-    server.stop();                            //停止开发板所建立的网络服务器。
+  wifiConfig();
+  while(configIsChange != 1){
+    Serial.println("test web");
+    delay(800);
   }
+  configIsChange = 0;
+  WiFi.hostname(HOST_NAME);                       //设置设备名
+  WiFi.mode(WIFI_STA);                            //设置为STA模式并连接WIFI 
+  Serial.print("使用web配置信息连接中");
+  while(WiFi.status() != WL_CONNECTED){
+    Serial.print(".");
+    digitalWrite(LED, !digitalRead(LED));
+    WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str()); //c_str(),获取该字符串的指针
+    delay(200);
+  }
+  storeWiFiIfoToEEPROM();
+  Serial.println("");
+  Serial.println("WIFI connect Success");
+  Serial.printf("SSID:%s", WiFi.SSID().c_str());
+  Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
+  Serial.print("LocalIP:");
+  Serial.print(WiFi.localIP());
+  Serial.print(" ,GateIP:");
+  Serial.println(WiFi.gatewayIP());
+  Serial.print("WIFI status is:");
+  Serial.print(WiFi.status()); 
+  digitalWrite(LED, LOW);
+  return;
+
+
+
+
+
+  // if (wifi_ssid != "")                        //wifi_ssid不为空，意味着从网页读取到wifi
+  // {
+  //   Serial.println("用web配置信息连接.");
+  //   WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str()); //c_str(),获取该字符串的指针
+  //   storeWiFiIfoToEEPROM();
+  // //  wifi_ssid = "";
+  // //  wifi_pass = "";
+  // } 
+  // else                                        //未从网页读取到wifi
+  // {
+  //   Serial.println("使用上次WiFi信息连接中");
+  //   //WiFi.begin();
+  //   WiFi.begin(getWiFiInfoFromEEPROM(wifi_ssidval_add),getWiFiInfoFromEEPROM(wifi_passval_add));                             //begin()不传入参数，默认连接上一次连接成功的wifi
+  // }
+ 
+  // int Connect_time = 0;                       //用于连接计时，如果长时间连接不成功，复位设备
+  // while (WiFi.status() != WL_CONNECTED)       //等待WIFI连接成功
+  // {  
+  //   Serial.print(".");                        //一共打印30个点点
+  //   digitalWrite(LED, !digitalRead(LED));     
+  //   delay(500);
+  //   Connect_time ++;
+                                       
+  //   if (Connect_time > 2 * timeOut_s)         //长时间连接不上，重新进入配网页面
+  //   { 
+  //     digitalWrite(LED, !LOW);
+  //     Serial.println("");                     //主要目的是为了换行符
+  //     Serial.println("WIFI autoconnect fail, start AP for webconfig now...");
+  //     wifiConfig();                           //开始配网功能
+  //     return;                                 //跳出 防止无限初始化
+  //   }
+  // }
+  
+  // if (WiFi.status() == WL_CONNECTED)          //如果连接成功
+  // {
+  //   Serial.println("WIFI connect Success");
+  //   Serial.printf("SSID:%s", WiFi.SSID().c_str());
+  //   Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
+  //   Serial.print("LocalIP:");
+  //   Serial.print(WiFi.localIP());
+  //   Serial.print(" ,GateIP:");
+  //   Serial.println(WiFi.gatewayIP());
+  //   Serial.print("WIFI status is:");
+  //   Serial.print(WiFi.status());
+  //   digitalWrite(LED, !HIGH);
+  //   server.stop();                            //停止开发板所建立的网络服务器。
+  // }
 }
  
 /*
@@ -325,7 +385,7 @@ void checkDNS_HTTP()
 }
 
 
-void storeWiFiIfo(){
+void storeWiFiIfoToEEPROM(){
   if(wifi_ssid != ""){
     EEPROM.write(wifi_ssidlen_add,wifi_ssid.length());//存储wifi账号与密码的长度
     EEPROM.write(wifi_passlen_add,wifi_pass.length());
@@ -343,7 +403,7 @@ void storeWiFiIfo(){
   return;
 }
 
-String getWiFiInfo(int wifi_infoval_add){
+String getWiFiInfoFromEEPROM(int wifi_infoval_add){
   String wifi_info = "";
 
   switch (wifi_infoval_add){//判断获取账号还是密码
