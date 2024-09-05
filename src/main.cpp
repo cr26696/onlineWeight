@@ -106,8 +106,18 @@ void ScanQRcode(){  //扫描生产编号或人员编�?
 int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight){
   String url = base_url;
 
-  url += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
+  Serial.print(remote_host);
   Serial.println(url);
-  HTTPS_request(remote_host, url, "", "", 443);
+
+  String payload = "{";
+  payload += "\"base\":\"" + String(baseName) + "\", ";
+  payload += "\"batchNo\":\"" + String(batchNo) + "\", ";
+  payload += "\"id\":\"" + String(boxID) + "\", ";
+  payload += "\"name\":\"" + String(employerName) + "\", ";
+  payload += "\"phone\":\"" + String(employerPhone) + "\", ";
+  payload += "\"weight\":" + String(weight);
+  payload += "}";
+
+  HTTPS_request_post(remote_host, url, payload, "", "", 443);
   return 1;
 }
