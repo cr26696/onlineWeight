@@ -7,7 +7,7 @@
 
 const int resetPin = 0; // 设置重置按键引脚,用于删除WiFi信息, 默认HIGH,按下时下拉LOW
 
-int connectTimeOut_s = 15; // WiFi连接超时时间，单位秒
+int connectTimeOutSec = 15; // WiFi连接超时时间，单位秒
 
 // String wifi_ssid = "";                     //暂时存储wifi账号密码
 // String wifi_pass = "";                     //暂时存储wifi账号密码
@@ -37,16 +37,18 @@ void setup()
   Serial.begin(9600);              // 波特率
   LEDinit();                       // LED用于显示WiFi状态
   // WiFi.mode(WIFI_AP_STA);
-  // connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
+  // connectToWiFi(connectTimeOutSec);     //连接wifi，传入的是wifi连接等待时间15s
   //  wifi_ssid = getWiFiInfoFromEEPROM(wifi_ssidval_add);
   //  wifi_pass = getWiFiInfoFromEEPROM(wifi_passval_add);
   TickerButtons.attach(0.1, t_checkButton);
   // 申请一个客户端对象
   //WiFiClient client;
-  connectToWiFi(15);
-  // connectToWiFi(connectTimeOut_s);     //连接wifi，传入的是wifi连接等待时间15s
+  //connectToWiFi(15);
+  // connectToWiFi(connectTimeOutSec);     //连接wifi，传入的是wifi连接等待时间15s
   Init_Hx711();
   Weight_Maopi = Get_Maopi();
+
+  initWiFi();
 }
 
 void loop()
@@ -79,7 +81,7 @@ void loop()
   {
     while (WiFi.status() != WL_CONNECTED)
     {
-      connectToWiFi(connectTimeOut_s);
+      connectToWiFi(connectTimeOutSec);
     }
   }
 

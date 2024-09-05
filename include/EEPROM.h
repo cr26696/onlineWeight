@@ -35,20 +35,8 @@ public:
     EepromVariable(uint8_t addr, uint8_t len)
         : address(addr), length(len) {}
 };
-/**
- * 功能: 向 EEPROM 中添加一个变量
- * @param length: 数据的长度(uint8_t)
- * @param Variables: 变量对象数组(EepromVariable)
- */
-void addVariable(uint8_t length,std::vector<EepromVariable> &Variables) {
-    uint8_t address = 0;
-    uint8_t variableCount = Variables.size();
-    for (uint8_t i = 0; i < variableCount; i++) {
-        address += Variables[i].length; // 计算下一个可用地址
-    }
-    Variables[variableCount].address = address;
-    Variables[variableCount].length = length;
-}
+
+void addVariable(uint8_t length,std::vector<EepromVariable> &Variables);
 //----------------------------------------------------
 class EEPROMClass {
 public:
