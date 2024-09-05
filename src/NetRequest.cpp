@@ -86,7 +86,7 @@
  * @param fingerprint：服务器证书指纹 (String类型)(默认""")
  * @param Port：请求端口(int类型)(默认：443)
  * */
-void HTTPS_request(String host, String url, String parameter = "", String fingerprint = "", int Port = 443)
+void HTTPS_request_get(String host, String url, String parameter = "", String fingerprint = "", int Port = 443)
 {
     std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
 
@@ -117,6 +117,39 @@ void HTTPS_request(String host, String url, String parameter = "", String finger
         Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
       }
 
+      https.end();
+    } else {
+      Serial.printf("[HTTPS] Unable to connect\n");
+    }
+}
+void HTTPS_request_post(String host, String url, String payload, String parameter = "", String fingerprint = "", int Port = 443)
+{
+    std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
+
+    //client->setFingerprint(fingerprint_sni_cloudflaressl_com);
+    // 这里不使用服务器证书
+    client->setInsecure();
+    HTTPClient https;
+    Serial.print("[HTTPS] begin...\n");
+    if (https.begin(*client, host, Port, url, true)) {  // HTTPS
+      https.addHeader("Content-Type", "application/json");
+      Serial.print("[HTTPS] GET...\n");
+      // start connection and send HTTP header
+      int httpCode = https.POST(payload);
+
+      // httpCode will be negative on error
+      if (httpCode > 0) {
+        // HTTP header has been send and Server response header has been handled
+        Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+
+        // file found at server
+        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+          String resPayload = https.getString();
+          Serial.println(resPayload);//请求响应返回内容
+        }
+      } else {
+        Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+      }
       https.end();
     } else {
       Serial.printf("[HTTPS] Unable to connect\n");
