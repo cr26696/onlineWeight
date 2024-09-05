@@ -1,6 +1,6 @@
 #include "WiFiUser.h"
 #include "EEPROM.h"
-
+#include <Ticker.h>
 
 const byte DNS_PORT = 53;                  //设置DNS端口号
 const int webPort = 80;                    //设置Web端口号
@@ -15,7 +15,16 @@ IPAddress apIP(192, 168, 4, 1);            //设置AP的IP地址
  
 String wifi_ssid = "";                     //暂时存储wifi账号密码
 String wifi_pass = "";                     //暂时存储wifi账号密码
- 
+
+//EEPROM存储变量预定义
+std::vector<EepromVariable> rom_variables;//变量容器
+//变量存储序号定义
+#define ROM_INDEX_SSID 0
+#define ROM_INDEX_PWD 1
+
+//定时器
+Ticker T_restart;
+
 const int LED = 2;                         //设置LED引脚
  
 DNSServer dnsServer;                       //创建dnsServer实例
@@ -105,6 +114,7 @@ void handleNotFound()           // 当浏览器请求的网络资源无法在服
  * 进入AP模式
  */
 void initSoftAP() {
+
   WiFi.mode(WIFI_AP);                                           //配置为AP模式
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));   //设置AP热点IP和子网掩码
   if (WiFi.softAP(AP_SSID))                                     //开启AP热点,如需要密码则添加第二个参数
@@ -112,15 +122,19 @@ void initSoftAP() {
     //打印相关信息
     Serial.println("ESP-32S SoftAP is right.");
     Serial.print("Soft-AP IP address = ");
-    Serial.println(WiFi.softAPIP());                                                //接入点ip
-    Serial.println(String("MAC address = ")  + WiFi.softAPmacAddress().c_str());    //接入点mac
+    Serial.println(WiFi.softAPIP());            //接入点ip
+    Serial.print("MAC address = ");
+    Serial.println(WiFi.softAPmacAddress());    //接入点mac
   }
   else                                                  //开启AP热点失败
   {
+    T_restart.detach();
     Serial.println("WiFiAP Failed");
-    delay(1000);
-    Serial.println("restart now...");
-    ESP.restart();                                      //重启复位esp32
+    Serial.println("restart 2s later...");
+    T_restart.once(2, [](){ 
+      Serial.println("restart now.");
+      ESP.restart(); 
+    });//重启复位esp32
   }
 }
  
@@ -131,9 +145,9 @@ void initDNS()
 {
   if (dnsServer.start(DNS_PORT, "*", apIP))   //判断将所有地址映射到esp32的ip上是否成功
   {
-    Serial.println("start dnsserver success.");
+    Serial.println("DNS server started");
   } else {
-    Serial.println("start dnsserver failed.");
+    Serial.println("Failed start DNSserver.");
   }
 }
  
@@ -156,7 +170,8 @@ void initWebServer()
  
   Serial.println("WebServer started!");
 }
- 
+
+
 /*
  * 扫描附近的WiFi，为了显示在配网界面
  */
@@ -192,67 +207,117 @@ bool scanWiFi() {
 
 
 
-
-/*
- * 连接WiFi
+/**
+ * 初始化,为连接WiFi做准备
+ * 设置设备名
+ * 获取ssid、password
  */
-void connectToWiFi(int timeOut_s) { 
-  WiFi.hostname(HOST_NAME);             //设置设备名
-  Serial.println("进入connectToWiFi()函数");
-  WiFi.mode(WIFI_STA);                        //设置为STA模式并连接WIFI
-  WiFi.setAutoConnect(true);                  //设置自动连接    
+void initWiFi(){
+  WiFi.hostname(HOST_NAME);     //设置设备名
+  WiFi.setAutoConnect(true);    //设置自动连接
+  getWiFiInfoFromEEPROM();
 
-  WiFi.begin(getWiFiInfoFromEEPROM(wifi_ssidval_add),getWiFiInfoFromEEPROM(wifi_passval_add));
-  Serial.print("使用上次WiFi信息连接中");
-  for(int i =0; i <= timeOut_s*2; i++){
-    Serial.print(".");
-    digitalWrite(LED, !digitalRead(LED));
-    delay(200);
-    if(WiFi.status() == WL_CONNECTED){
-      Serial.println("");
-      Serial.println("WIFI connect Success");
-      Serial.printf("SSID:%s", WiFi.SSID().c_str());
-      Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
-      Serial.print("LocalIP:");
-      Serial.print(WiFi.localIP());
-      Serial.print(" ,GateIP:");
-      Serial.println(WiFi.gatewayIP());
-      Serial.print("WIFI status is:");
-      Serial.print(WiFi.status());
-      digitalWrite(LED, LOW);
-      return;
+  Serial.println("尝试使用上次WiFi信息连接");
+  Serial.print("wifi_ssid:");
+  Serial.println(wifi_ssid);
+  Serial.print("wifi_password:");
+  Serial.println(wifi_pass);
+
+  if(connectToWiFi(5)){
+    Serial.println("wifi 连接成功，初始化结束");
+  }
+  else{
+    Serial.println("wifi初始化失败, 开启配网");
+    wifiWebConfig();
+  }
+};
+/** 
+ * 功能: 尝试连接WiFi
+ * @param timeOut_s: 连接超时时间
+ * @return 连接成功/失败(bool)
+ **/
+bool connectToWiFi(int timeOut_s) { 
+  Serial.println("进入connectToWiFi()函数");
+  WiFi.mode(WIFI_STA);   //设置为STA模式并连接WIFI
+  WiFi.begin(wifi_ssid,wifi_pass);
+  unsigned long time_startConnect = millis();
+  unsigned long time_startDot;
+  while(WiFi.status() != WL_CONNECTED){
+    unsigned long time_now = millis();
+    if (time_now - time_startConnect >= timeOut_s*1000) {
+      Serial.println("WIFI connect Timeout");
+       return false; // 超时退出
+    }
+    // 打印进度
+    if (time_now - time_startDot >= 200) {
+      Serial.print(".");
+      time_startDot = time_now;
     }
   }
+  //WiFi.status() == WL_CONNECTED即连接成功
 
-  
-  wifiConfig();
-  while(configIsChange != 1){
-    Serial.println("test web");
-    delay(800);
-  }
-  configIsChange = 0;
-  WiFi.hostname(HOST_NAME);                       //设置设备名
-  WiFi.mode(WIFI_STA);                            //设置为STA模式并连接WIFI 
-  Serial.print("使用web配置信息连接中");
-  while(WiFi.status() != WL_CONNECTED){
-    Serial.print(".");
-    digitalWrite(LED, !digitalRead(LED));
-    WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str()); //c_str(),获取该字符串的指针
-    delay(200);
-  }
-  storeWiFiIfoToEEPROM();
-  Serial.println("");
   Serial.println("WIFI connect Success");
-  Serial.printf("SSID:%s", WiFi.SSID().c_str());
-  Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
-  Serial.print("LocalIP:");
-  Serial.print(WiFi.localIP());
-  Serial.print(" ,GateIP:");
+  Serial.print("WiFi SSID:");
+  Serial.println(WiFi.SSID());
+  Serial.print("WiFi IP:");
+  Serial.println(WiFi.localIP());
+  Serial.print("WiFi GateIP:");
   Serial.println(WiFi.gatewayIP());
   Serial.print("WIFI status is:");
-  Serial.print(WiFi.status()); 
+  Serial.print(WiFi.status());
   digitalWrite(LED, LOW);
-  return;
+  return true;
+}
+  // }
+  // for(int i =0; i <= timeOut_s*2; i++){
+  //   Serial.print(".");
+  //   digitalWrite(LED, !digitalRead(LED));
+  //   delay(200);
+  //   if(WiFi.status() == WL_CONNECTED){
+  //     Serial.println("");
+  //     Serial.println("WIFI connect Success");
+  //     Serial.printf("SSID:%s", WiFi.SSID().c_str());
+  //     Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
+  //     Serial.print("LocalIP:");
+  //     Serial.print(WiFi.localIP());
+  //     Serial.print(" ,GateIP:");
+  //     Serial.println(WiFi.gatewayIP());
+  //     Serial.print("WIFI status is:");
+  //     Serial.print(WiFi.status());
+  //     digitalWrite(LED, LOW);
+  //     return;
+  //   }
+  // }
+
+  
+  // wifiWebConfig();
+  // while(!configIsChange){     //等待配置信息改变
+  //   Serial.println("wait for config change...");
+  //   delay(2000);
+  // }
+  // configIsChange = 0;
+  // WiFi.hostname(HOST_NAME);                       //设置设备名
+  // WiFi.mode(WIFI_STA);                            //设置为STA模式并连接WIFI 
+  // Serial.print("使用web配置信息连接中");
+  // while(WiFi.status() != WL_CONNECTED){
+  //   Serial.print(".");
+  //   digitalWrite(LED, !digitalRead(LED));
+  //   WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str()); //c_str(),获取该字符串的指针
+  //   delay(200);
+  // }
+  // storeWiFiIfoToEEPROM();
+  // Serial.println("");
+  // Serial.println("WIFI connect Success");
+  // Serial.printf("SSID:%s", WiFi.SSID().c_str());
+  // Serial.printf(", PSW:%s\r\n", WiFi.psk().c_str());
+  // Serial.print("LocalIP:");
+  // Serial.print(WiFi.localIP());
+  // Serial.print(" ,GateIP:");
+  // Serial.println(WiFi.gatewayIP());
+  // Serial.print("WIFI status is:");
+  // Serial.print(WiFi.status()); 
+  // digitalWrite(LED, LOW);
+  // return;
 
 
 
@@ -286,7 +351,7 @@ void connectToWiFi(int timeOut_s) {
   //     digitalWrite(LED, !LOW);
   //     Serial.println("");                     //主要目的是为了换行符
   //     Serial.println("WIFI autoconnect fail, start AP for webconfig now...");
-  //     wifiConfig();                           //开始配网功能
+  //     wifiWebConfig();                           //开始配网功能
   //     return;                                 //跳出 防止无限初始化
   //   }
   // }
@@ -305,22 +370,22 @@ void connectToWiFi(int timeOut_s) {
   //   digitalWrite(LED, !HIGH);
   //   server.stop();                            //停止开发板所建立的网络服务器。
   // }
-}
+
  
-/*
- * 配置配网功能
+/**
+ * 功能: 启动热点,提供配网页面（轮询响应网页事件）
  */
-void wifiConfig() 
+void wifiWebConfig() 
 {
   initSoftAP();   
   initDNS();        
   initWebServer();  
-  scanWiFi();       
+  scanWiFi();
 }
  
  
-/*
- * 删除保存的wifi信息，这里的删除是删除存储在flash的信息。删除后wifi读不到上次连接的记录，需重新配网
+/**
+ * 功能: 功能描述
  */
 void restoreWiFi() {
   delay(500);
@@ -386,40 +451,44 @@ void checkDNS_HTTP()
 
 
 void storeWiFiIfoToEEPROM(){
-  if(wifi_ssid != ""){
-    EEPROM.write(wifi_ssidlen_add,wifi_ssid.length());//存储wifi账号与密码的长度
-    EEPROM.write(wifi_passlen_add,wifi_pass.length());
-
-    for(int i = 0; i < (int)wifi_ssid.length(); i++){
-      EEPROM.write(wifi_ssidval_add+i,wifi_ssid[i]);//存储wifi账号与密码值
-    }
-    for (int i = 0; i < (int)wifi_pass.length(); i++){
-      EEPROM.write(wifi_passval_add+i,wifi_pass[i]);
-    }
-    EEPROM.commit();
-  }
-  else return;
-
-  return;
+    writeEEPROM(rom_variables[ROM_INDEX_SSID].address, wifi_ssid, rom_variables[ROM_INDEX_SSID].length);
+    writeEEPROM(rom_variables[ROM_INDEX_PWD].address, wifi_pass, rom_variables[ROM_INDEX_PWD].length);
 }
 
-String getWiFiInfoFromEEPROM(int wifi_infoval_add){
-  String wifi_info = "";
-
-  switch (wifi_infoval_add){//判断获取账号还是密码
-  case wifi_ssidval_add:
-    for(int i = 0; i < EEPROM.read(wifi_ssidlen_add); i++){
-      wifi_info += char(EEPROM.read(wifi_ssidval_add+i));
-    }
-    break;
-  case wifi_passval_add:
-    for(int i = 0; i < EEPROM.read(wifi_passlen_add); i++){
-      wifi_info += char(EEPROM.read(wifi_passval_add+i));
-    }
-    break;
-  default:
-    break;
-  }
-
-  return wifi_info;
+void getWiFiInfoFromEEPROM(){
+  readEEPROM(rom_variables[ROM_INDEX_SSID].address,rom_variables[ROM_INDEX_SSID].length);
+  readEEPROM(rom_variables[ROM_INDEX_PWD].address,rom_variables[ROM_INDEX_PWD].length);
 }
+
+/**
+ * 功能: 写入数据到EEPROM
+ * @param address EEPROM地址(int)
+ * @param buffer 数据起始地址(char*)
+ * @param length 写入数据长度(int)
+ */
+void writeEEPROM(int address, String &str, int length) {
+    for (int i = 0; i < length; i++) {
+        EEPROM.write(address + i, str[i]);
+    }
+    EEPROM.commit(); 
+}
+// void writeEEPROM(int address, String str) {
+//     for (int i = 0; i < length; i++) {
+//         EEPROM.write(address + i, str[i]);
+//     }
+//     EEPROM.commit(); 
+// }
+/**
+ * 功能: 从EEPROM读取字符串
+ * @param address: EEPROM地址(int)
+ * @param length: 读取数据长度(int)
+ * @return 读取内容(String)
+ */
+String readEEPROM(int address, int length) {
+    char data[length]; // 创建字符数组
+    for (int i = 0; i < length; i++) {
+        data[i] = EEPROM.read(address + i); // 读取字符串内容
+    }
+    return String(data); // 返回字符串
+}
+

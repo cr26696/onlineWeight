@@ -1,6 +1,6 @@
 #include "hx711.h"
 
-#define GapValue 213
+#define GapValue 213 //
 
 //****************************************************
 //初始化HX711
@@ -20,15 +20,16 @@ unsigned long Get_Maopi()
 	return HX711_Read();		
 } 
 
-//****************************************************
-//称重
-//****************************************************
-unsigned long Get_Weight(unsigned long Weight_Maopi)
+/**
+ * 功能: 获取重量
+ * @param grossWeight: 毛重
+ */
+unsigned long Get_Weight(unsigned long grossWeight)
 {
-	unsigned long Weight_Shiwu = 0;
-	Weight_Shiwu = HX711_Read() - Weight_Maopi;				//获取实物的AD采样数值。
-	Weight_Shiwu = ((Weight_Shiwu/GapValue) - OFFSET_VAL); 	
-	return Weight_Shiwu; //显示克重
+	unsigned long netWeight = 0; //净重
+	netWeight = HX711_Read() - grossWeight;				//获取实物的AD采样数值。
+	netWeight = ((netWeight/GapValue) - OFFSET_VAL); 	
+	return netWeight; //显示克重
 }
 
 //****************************************************
