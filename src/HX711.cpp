@@ -1,6 +1,6 @@
 #include "hx711.h"
 
-#define GapValue 213
+int GapValue = 213;
 
 //****************************************************
 //初始化HX711
@@ -15,9 +15,15 @@ void Init_Hx711()
 //****************************************************
 //获取毛皮重量
 //****************************************************
-unsigned long Get_Maopi()
-{
-	return HX711_Read();		
+unsigned long Get_Maopi(unsigned long Weight_Maopi)
+{   
+    if(digitalRead(D6) == LOW){
+        delay(20);
+        if(digitalRead(D6) == LOW){
+            return HX711_Read();
+        }
+    }
+	return Weight_Maopi;		
 } 
 
 //****************************************************
@@ -25,10 +31,11 @@ unsigned long Get_Maopi()
 //****************************************************
 unsigned long Get_Weight(unsigned long Weight_Maopi)
 {
-	unsigned long Weight_Shiwu = 0;
-	Weight_Shiwu = HX711_Read() - Weight_Maopi;				//获取实物的AD采样数值。
-	Weight_Shiwu = ((Weight_Shiwu/GapValue) - OFFSET_VAL); 	
-	return Weight_Shiwu; //显示克重
+	unsigned long Weight_Shiwu = HX711_Read();
+    //unsigned long Weight_Chen = HX711_Read();
+	return Weight_Shiwu > Weight_Maopi? (Weight_Shiwu - Weight_Maopi)/GapValue : 0;				//获取实物的克重
+	//Weight_Shiwu = ((Weight_Shiwu/GapValue)); //- OFFSET_VAL); 	
+	//return Weight_Shiwu; //显示克重
 }
 
 //****************************************************

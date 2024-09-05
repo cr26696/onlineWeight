@@ -10,6 +10,6 @@
 void Init_Hx711();
 unsigned long HX711_Read(void);
 unsigned long Get_Weight(unsigned long Weight_Maopi);
-unsigned long Get_Maopi();
+unsigned long Get_Maopi(unsigned long Weight_Maopi);
 
 #endif
