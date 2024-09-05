@@ -133,14 +133,14 @@ void HTTPS_request_post(String host, String url, String payload, String paramete
     Serial.print("[HTTPS] begin...\n");
     if (https.begin(*client, host, Port, url, true)) {  // HTTPS
       https.addHeader("Content-Type", "application/json");
-      Serial.print("[HTTPS] GET...\n");
+      Serial.print("[HTTPS] POST...\n");
       // start connection and send HTTP header
       int httpCode = https.POST(payload);
 
       // httpCode will be negative on error
       if (httpCode > 0) {
         // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+        Serial.printf("[HTTPS] POST... code: %d\n", httpCode);
 
         // file found at server
         if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
@@ -148,7 +148,7 @@ void HTTPS_request_post(String host, String url, String payload, String paramete
           Serial.println(resPayload);//请求响应返回内容
         }
       } else {
-        Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+        Serial.printf("[HTTPS] POST... failed, error: %s\n", https.errorToString(httpCode).c_str());
       }
       https.end();
     } else {

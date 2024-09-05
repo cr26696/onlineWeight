@@ -4,12 +4,12 @@
 #include "HX711.h"
 #include "NetRequest.h"
 
-String Production_base = "茶叶基地";
-String Batch_number = "123";
-String Unique_code = "abc";
-String User_name = "王斌彬";
-String Phone_number = "8755";
-String Weight_val = "200";
+String Production_base = "";//需要使用UTF-8编码
+String Batch_number = "";
+String User_name = "";
+String Phone_number = "";
+String Unique_code ="";
+String Weight_val = "";
 
 
 String remote_host = "code.server.hzyichuan.cn";
@@ -18,7 +18,7 @@ String base_url = "/hello";
 unsigned long Weight_Maopi = 0;
 
 void ScanQRcode();
-int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight);
+int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight, bool isGet);
 void setup() {
     // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
     // it is a good practice to make sure your code sets wifi mode how you want it.
@@ -27,7 +27,7 @@ void setup() {
     Serial.begin(9600);
     pinMode(LED_BUILTIN,OUTPUT);
     digitalWrite(LED_BUILTIN,HIGH);
-    Init_Hx711();//需要和单片机共地
+    Init_Hx711();//需要和单片机共�?
 
     pinMode(D6,INPUT_PULLUP);
     digitalWrite(D6,HIGH);
@@ -67,18 +67,12 @@ void setup() {
 
 void loop() {
   ScanQRcode();
-  Weight_Maopi = Get_Maopi(Weight_Maopi); //是否需要更新毛皮
-  UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val);
-  // Serial.print("empty weightADC: ");
-  // Serial.println(Weight_Maopi);
-  // Serial.print("phone weightADC: ");
-  // Serial.println(HX711_Read());
-  //Serial.print("real weight: ");
-  //Serial.println(Get_Weight(Weight_Maopi));  
-  //delay(500);
+  Weight_Maopi = Get_Maopi(Weight_Maopi); //是否需要更新毛皮?
+  UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
+  delay(500);
 }
 
-void ScanQRcode(){  //扫描生产编号或人员编�?
+void ScanQRcode(){  //扫描生产编号或人员编码?
 
   const char *batchsymbol = "#";
   const char *staffsymbol = "?";
@@ -112,21 +106,29 @@ void ScanQRcode(){  //扫描生产编号或人员编�?
 }
 
 
-int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight){
+int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight, bool isGet){ 
   String url = base_url;
 
   Serial.print(remote_host);
   Serial.println(url);
 
-  String payload = "{";
-  payload += "\"base\":\"" + String(baseName) + "\", ";
-  payload += "\"batchNo\":\"" + String(batchNo) + "\", ";
-  payload += "\"id\":\"" + String(boxID) + "\", ";
-  payload += "\"name\":\"" + String(employerName) + "\", ";
-  payload += "\"phone\":\"" + String(employerPhone) + "\", ";
-  payload += "\"weight\":" + String(weight);
-  payload += "}";
-
-  HTTPS_request_post(remote_host, url, payload, "", "", 443);
+  if (!isGet){
+    String payload = "{";
+    payload += "\"base\":\"" + String(baseName) + "\", ";
+    payload += "\"batchNo\":\"" + String(batchNo) + "\", ";
+    payload += "\"id\":\"" + String(boxID) + "\", ";
+    payload += "\"name\":\"" + String(employerName) + "\", ";
+    payload += "\"phone\":\"" + String(employerPhone) + "\", ";
+    payload += "\"weight\":" + String(weight);
+    payload += "}";
+    Serial.println(payload);
+    HTTPS_request_post(remote_host, url, payload, "", "", 443);
+  }
+  else if (isGet)
+  {
+    url += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
+    Serial.println(url);
+    HTTPS_request_get(remote_host, url, "", "", 443);
+  }
   return 1;
 }
