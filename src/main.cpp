@@ -5,35 +5,33 @@
 #include "Ticker.h"
 #include "NetRequest.h"
 #include <SegDisplay.h>
+
+
 String Production_base = "";//需要使用UTF-8编码
 String Batch_number = "";
+String Unique_code ="";
 String User_name = "";
 String Phone_number = "";
-String Unique_code ="";
 String Weight_val = "";
 
 
 String remote_host = "code.server.hzyichuan.cn";
 String base_url = "/hello";
 
-unsigned long Weight_Maopi = 0;
 Ticker TickerDisplay;
 int tickerDispalycount = 0;
 void ScanQRcode();
 void setup() {
-    // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
-    // it is a good practice to make sure your code sets wifi mode how you want it.
-
-    // put your setup code here, to run once:
     EEPROM.begin(1024);
     Serial.begin(9600);
     pinMode(LED_BUILTIN,OUTPUT);
     digitalWrite(LED_BUILTIN,HIGH);
-    Init_Hx711();//需要和单片机共�?
+    Init_Hx711();//需要和单片机共地
 
     pinMode(ZERO_BUTTON,INPUT_PULLUP);
     pinMode(CHECK_MINUS_BUTTON,INPUT_PULLUP);
     pinMode(CHECK_PLUS_BUTTON,INPUT_PULLUP);
+    pinMode(CONFIRM_BUTTON,INPUT_PULLUP);
   
     //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
     WiFiManager wm;
@@ -63,62 +61,13 @@ void setup() {
         Serial.println("connected...yeey :)");
         digitalWrite(LED_BUILTIN,LOW);
     }
-
     SegDisplayinit();
-    SegWrite("lower","1234");
-    SegWrite("upper","5678");
-    TickerDisplay.attach(0.5, []()
-    {
-      if(tickerDispalycount>9){tickerDispalycount = 0;}
-      else{
-        switch (tickerDispalycount){
-        case 0:
-          SegWrite("full","10000000");
-          break;
-        case 1:
-          SegWrite("full","10001111");
-          break;
-        case 2:
-          SegWrite("full","10022220");
-          break;
-        case 3:
-          SegWrite("full","10033330");
-          break;
-        case 4:
-          SegWrite("full","10044440");
-          break;
-        case 5:
-          SegWrite("full","10555500");
-          break;
-        case 6:
-          SegWrite("full","10666600");
-          break;
-        case 7:
-          SegWrite("full","17777000");
-          break;
-        case 8:
-          SegWrite("full","10888800");
-          break;
-        case 9:
-          SegWrite("full","10090999");
-          break;
-        default:
-          Serial.print("no this tickerDispalycount:");
-          Serial.println(tickerDispalycount);
-          break;
-        }
-      tickerDispalycount++;
-      Serial.print("tickerDispalycount now:");
-      Serial.println(tickerDispalycount);
-      }
-    });
-
 }
 
 void loop() {
   ScanQRcode();
   weightConfig(); //是否需要更新毛皮?
-  //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
+  UploadData(IS_POST, remote_host, base_url, Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val);
   Serial.print("weight: ");
   Serial.println(Get_Weight());
   delay(1000);

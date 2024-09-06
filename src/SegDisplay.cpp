@@ -3,6 +3,7 @@
 void SegDisplayinit()
 {
   Init_MAX7219();
+  SegWrite("full","00000000");
 }
 
 
