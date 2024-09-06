@@ -25,13 +25,16 @@ void setup() {
     // it is a good practice to make sure your code sets wifi mode how you want it.
 
     // put your setup code here, to run once:
+    EEPROM.begin(1024);
     Serial.begin(9600);
     pinMode(LED_BUILTIN,OUTPUT);
     digitalWrite(LED_BUILTIN,HIGH);
     Init_Hx711();//需要和单片机共�?
 
-    pinMode(D6,INPUT_PULLUP);
-    digitalWrite(D6,HIGH);
+    pinMode(ZERO_BUTTON,INPUT_PULLUP);
+    pinMode(CHECK_MINUS_BUTTON,INPUT_PULLUP);
+    pinMode(CHECK_PLUS_BUTTON,INPUT_PULLUP);
+  
     //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
     WiFiManager wm;
 
@@ -114,9 +117,11 @@ void setup() {
 
 void loop() {
   ScanQRcode();
-  Weight_Maopi = Get_Maopi(Weight_Maopi); //是否需要更新毛皮?
-  // UploadData(false,remote_host,base_url,Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val); 
-  delay(500);
+  weightConfig(); //是否需要更新毛皮?
+  //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
+  Serial.print("weight: ");
+  Serial.println(Get_Weight());
+  delay(1000);
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编码?
@@ -128,10 +133,9 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
     String QR_val = "";
     QR_val = Serial.readString();
     Serial.println(QR_val);
-    Weight_val = Get_Weight(Weight_Maopi);
+    Weight_val = Get_Weight();
     Serial.print("get SangYe weight: ");
     Serial.println(Weight_val);
-    //QR_val = "茶叶基地哈哈哈哈哈哈#4asdasda56#73333389";
     char buffer[QR_val.length()+1];
     strcpy(buffer, QR_val.c_str());
     if( strstr(buffer,batchsymbol) ){//判断为批次码
