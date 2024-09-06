@@ -6,6 +6,7 @@
 #include "ESP8266HTTPClient.h"
 #include "WiFiClientSecureBearSSL.h"
 
-void HTTPS_request_get(String host, String url, String parameter, String fingerprint, int Port);
-void HTTPS_request_post(String host, String url, String payload, String parameter, String fingerprint, int Port);
+void HTTPS_request(String method, String host, String url, String payload = "");
+//上传一条信息数据
+int UploadData(bool isGet, String host, String path, String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight);
 #endif
