@@ -21,6 +21,7 @@ String base_url = "/hello";
 Ticker TickerDisplay;
 int tickerDispalycount = 0;
 void ScanQRcode();
+String intToString4(int number);
 void setup() {
     EEPROM.begin(1024);
     Serial.begin(9600);
@@ -71,6 +72,8 @@ void loop() {
   Serial.print("weight: ");
   Serial.println(Get_Weight());
   delay(1000);
+  //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
+  SegWrite("lower",intToString4(Get_Weight()));  
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编码?
@@ -100,7 +103,19 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
       Phone_number = strtok(NULL,batchsymbol);
       Serial.println(User_name);
       Serial.println(Phone_number);
+      SegWrite("lower", Phone_number);
     }
     else return;
   }
+}
+String intToString4(int number) {
+  // 提取后四位
+  int lastFour = number % 10000;
+  // 创建一个字符串对象
+  String result = String(lastFour);
+  // 补零直到长度达到4
+  for(int i =  result.length(); i < 4; i++){
+    result = "0" + result;
+  }
+  return result;
 }
