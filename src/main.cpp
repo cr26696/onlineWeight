@@ -5,6 +5,7 @@
 #include "Ticker.h"
 #include "NetRequest.h"
 #include <SegDisplay.h>
+
 String Production_base = "";//需要使用UTF-8编码
 String Batch_number = "";
 String User_name = "";
@@ -16,10 +17,11 @@ String Weight_val = "";
 String remote_host = "code.server.hzyichuan.cn";
 String base_url = "/hello";
 
-unsigned long Weight_Maopi = 0;
+//unsigned long Weight_Maopi = 0;
 Ticker TickerDisplay;
 int tickerDispalycount = 0;
 void ScanQRcode();
+String intToString4(int number);
 void setup() {
     // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
     // it is a good practice to make sure your code sets wifi mode how you want it.
@@ -63,65 +65,16 @@ void setup() {
         Serial.println("connected...yeey :)");
         digitalWrite(LED_BUILTIN,LOW);
     }
-
     SegDisplayinit();
+    SegWrite("upper","1234");
     SegWrite("lower","1234");
-    SegWrite("upper","5678");
-    TickerDisplay.attach(0.5, []()
-    {
-      if(tickerDispalycount>9){tickerDispalycount = 0;}
-      else{
-        switch (tickerDispalycount){
-        case 0:
-          SegWrite("full","10000000");
-          break;
-        case 1:
-          SegWrite("full","10001111");
-          break;
-        case 2:
-          SegWrite("full","10022220");
-          break;
-        case 3:
-          SegWrite("full","10033330");
-          break;
-        case 4:
-          SegWrite("full","10044440");
-          break;
-        case 5:
-          SegWrite("full","10555500");
-          break;
-        case 6:
-          SegWrite("full","10666600");
-          break;
-        case 7:
-          SegWrite("full","17777000");
-          break;
-        case 8:
-          SegWrite("full","10888800");
-          break;
-        case 9:
-          SegWrite("full","10090999");
-          break;
-        default:
-          Serial.print("no this tickerDispalycount:");
-          Serial.println(tickerDispalycount);
-          break;
-        }
-      tickerDispalycount++;
-      Serial.print("tickerDispalycount now:");
-      Serial.println(tickerDispalycount);
-      }
-    });
-
 }
 
 void loop() {
   ScanQRcode();
   weightConfig(); //是否需要更新毛皮?
   //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
-  Serial.print("weight: ");
-  Serial.println(Get_Weight());
-  delay(1000);
+  //SegWrite("lower",intToString4(Get_Weight()));  
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编码?
@@ -151,7 +104,19 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
       Phone_number = strtok(NULL,batchsymbol);
       Serial.println(User_name);
       Serial.println(Phone_number);
+      SegWrite("lower", Phone_number);
     }
     else return;
   }
+}
+String intToString4(int number) {
+  // 提取后四位
+  int lastFour = number % 10000;
+  // 创建一个字符串对象
+  String result = String(lastFour);
+  // 补零直到长度达到4
+  for(int i =  result.length(); i <= 4; i++){
+    result = "0" + result;
+  }
+  return result;
 }

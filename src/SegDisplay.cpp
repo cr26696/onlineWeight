@@ -3,6 +3,7 @@
 void SegDisplayinit()
 {
   Init_MAX7219();
+  SegWrite("full","00000000");
 }
 
 
@@ -23,25 +24,23 @@ uint8_t SegCharToNum(char c){
  * 向数码管写数据
  * @param writePart "full" / "upper" / "lower"
  */
-void SegWrite(String writePart, String fullContent, String upperContent, String lowerContent){
+void SegWrite(String writePart, String fullContent){
   //Serial.println("[SegDisplay] SegWrite："+ fullContent);
+  int i = 1;//默认起始
+  int SegDisEndNumAddr = 8;//默认结束
+  int strlen = fullContent.length();
   if(writePart == "full"){
-    if(fullContent.length() == 8){
-      for(int i = 0;i < 8;i++){
-        Write_Max7219(i,SegCharToNum(fullContent[i]));
-      }
-    }else Serial.println("[SegDisplay]fullContent error");
-  }else if(writePart == "upper"){
-    if(fullContent.length() == 4){
-      for(int i = 0;i < 4;i++){
-        Write_Max7219(i + 4, SegCharToNum(upperContent[i]));
-      }
-    }else Serial.println("[SegDisplay]upperContent error");
-  }else if(writePart == "lower"){
-    if(fullContent.length() == 4){
-      for(int i = 0;i < 4;i++){
-        Write_Max7219(i, SegCharToNum(lowerContent[i]));
-      }
-    }else Serial.println("[SegDisplay]lowerContent error");
-  }else Serial.println("[SegDisplay]writePart error");
+    if(strlen != 8) Serial.println("[SegDisplay]fullContent error");
+  }else {
+    //半边控制
+    if(strlen != 4)Serial.println("[SegDisplay]halfContent error");
+    else{
+      if(writePart == "upper") i = 5;
+      else if(writePart == "lower") SegDisEndNumAddr = 4;
+      else Serial.println("[SegDisplay]writePart error");
+    }
+  }
+  for(;i <= SegDisEndNumAddr; i++,strlen--){
+    Write_Max7219(i,SegCharToNum(fullContent[strlen - 1]));
+  }
 }

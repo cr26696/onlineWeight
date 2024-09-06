@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 #define Max7219_pinCLK D0
+#define Max7219_pinDIN A0
 #define Max7219_pinCS D1
-#define Max7219_pinDIN D2
 
 /**
  * 初始化MAX7219
