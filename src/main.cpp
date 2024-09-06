@@ -2,8 +2,9 @@
 #include <Arduino.h>
 #include "EEPROM.h"
 #include "HX711.h"
+#include "Ticker.h"
 #include "NetRequest.h"
-
+#include <SegDisplay.h>
 String Production_base = "";//需要使用UTF-8编码
 String Batch_number = "";
 String User_name = "";
@@ -16,9 +17,9 @@ String remote_host = "code.server.hzyichuan.cn";
 String base_url = "/hello";
 
 unsigned long Weight_Maopi = 0;
-
+Ticker TickerDisplay;
+int tickerDispalycount = 0;
 void ScanQRcode();
-int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight, bool isGet);
 void setup() {
     // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
     // it is a good practice to make sure your code sets wifi mode how you want it.
@@ -44,10 +45,7 @@ void setup() {
     // then goes into a blocking loop awaiting configuration and will return success result
 
     bool res;
-    // res = wm.autoConnect(); // auto generated AP name from chipid
-    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
-    res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
-
+    res = wm.autoConnect(); 
     if(!res) {
         Serial.println("Failed to connect");
         Serial.println("please reset to try again...");
@@ -63,12 +61,61 @@ void setup() {
         digitalWrite(LED_BUILTIN,LOW);
     }
 
+    SegDisplayinit();
+    SegWrite("lower","1234");
+    SegWrite("upper","5678");
+    TickerDisplay.attach(0.5, []()
+    {
+      if(tickerDispalycount>9){tickerDispalycount = 0;}
+      else{
+        switch (tickerDispalycount){
+        case 0:
+          SegWrite("full","10000000");
+          break;
+        case 1:
+          SegWrite("full","10001111");
+          break;
+        case 2:
+          SegWrite("full","10022220");
+          break;
+        case 3:
+          SegWrite("full","10033330");
+          break;
+        case 4:
+          SegWrite("full","10044440");
+          break;
+        case 5:
+          SegWrite("full","10555500");
+          break;
+        case 6:
+          SegWrite("full","10666600");
+          break;
+        case 7:
+          SegWrite("full","17777000");
+          break;
+        case 8:
+          SegWrite("full","10888800");
+          break;
+        case 9:
+          SegWrite("full","10090999");
+          break;
+        default:
+          Serial.print("no this tickerDispalycount:");
+          Serial.println(tickerDispalycount);
+          break;
+        }
+      tickerDispalycount++;
+      Serial.print("tickerDispalycount now:");
+      Serial.println(tickerDispalycount);
+      }
+    });
+
 }
 
 void loop() {
   ScanQRcode();
   Weight_Maopi = Get_Maopi(Weight_Maopi); //是否需要更新毛皮?
-  UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
+  // UploadData(false,remote_host,base_url,Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val); 
   delay(500);
 }
 
@@ -103,32 +150,4 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
     }
     else return;
   }
-}
-
-
-int UploadData(String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight, bool isGet){ 
-  String url = base_url;
-
-  Serial.print(remote_host);
-  Serial.println(url);
-
-  if (!isGet){
-    String payload = "{";
-    payload += "\"base\":\"" + String(baseName) + "\", ";
-    payload += "\"batchNo\":\"" + String(batchNo) + "\", ";
-    payload += "\"id\":\"" + String(boxID) + "\", ";
-    payload += "\"name\":\"" + String(employerName) + "\", ";
-    payload += "\"phone\":\"" + String(employerPhone) + "\", ";
-    payload += "\"weight\":" + String(weight);
-    payload += "}";
-    Serial.println(payload);
-    HTTPS_request_post(remote_host, url, payload, "", "", 443);
-  }
-  else if (isGet)
-  {
-    url += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
-    Serial.println(url);
-    HTTPS_request_get(remote_host, url, "", "", 443);
-  }
-  return 1;
 }
