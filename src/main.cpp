@@ -74,7 +74,7 @@ void loop() {
   ScanQRcode();
   weightConfig(); //是否需要更新毛皮?
   //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
-  //SegWrite("lower",intToString4(Get_Weight()));  
+  SegWrite("lower",intToString4(Get_Weight()));  
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编码?
@@ -115,7 +115,7 @@ String intToString4(int number) {
   // 创建一个字符串对象
   String result = String(lastFour);
   // 补零直到长度达到4
-  for(int i =  result.length(); i <= 4; i++){
+  for(int i =  result.length(); i < 4; i++){
     result = "0" + result;
   }
   return result;

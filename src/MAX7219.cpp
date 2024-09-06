@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "MAX7219.h"
 
+#define SEGDISPLAY_Debug 0;
 //****************************************************
 // 初始化MAX7219
 //****************************************************
@@ -51,10 +52,10 @@ void Write_Max7219_byte(byte DATA)
   void Write_Max7219(byte address, byte dat)
   {
     digitalWrite(Max7219_pinCS, LOW);
-    Serial.print("[MAX7219]address: ");
-    Serial.print(address);
-    Serial.print(" ,data: ");
-    Serial.println(dat);
+    // Serial.print("[MAX7219]address: ");
+    // Serial.print(address);
+    // Serial.print(" ,data: ");
+    // Serial.println(dat);
     Write_Max7219_byte(address); // 写入地址，即数码管编号
     Write_Max7219_byte(dat);     // 写入数据，即数码管显示数字
     digitalWrite(Max7219_pinCS, HIGH);
