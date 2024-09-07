@@ -105,7 +105,6 @@ unsigned long HX711_Read(void)	//增益128
 	delayMicroseconds(1);
 	digitalWrite(HX711_SCK, LOW);
 	delayMicroseconds(1);
-	
 	return(count);
 }
 

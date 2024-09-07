@@ -10,6 +10,7 @@ void Init_MAX7219()
   pinMode(Max7219_pinCLK, OUTPUT);
   pinMode(Max7219_pinDIN, OUTPUT);
   pinMode(Max7219_pinCS, OUTPUT);
+  digitalWrite(Max7219_pinCLK, LOW);
   Serial.println("Init_MAX7219");
   Write_Max7219(0x09, 0xff); // 译码方式：BCD码
   Write_Max7219(0x0a, 0x03); // 亮度
@@ -59,4 +60,5 @@ void Write_Max7219_byte(byte DATA)
     Write_Max7219_byte(address); // 写入地址，即数码管编号
     Write_Max7219_byte(dat);     // 写入数据，即数码管显示数字
     digitalWrite(Max7219_pinCS, HIGH);
+    digitalWrite(Max7219_pinCLK, LOW);
   }

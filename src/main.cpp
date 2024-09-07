@@ -7,6 +7,17 @@
 #include <SegDisplay.h>
 
 
+/*
+D0 711_DT
+D1 711_CK
+D2 CHECK_M
+D3 CHECK_P
+D4 QUPI
+D5 CONFIRM
+D6 MAX_DIN
+D7 MAX_CS
+D8 MAX_CLK
+*/
 String Production_base = "";//需要使用UTF-8编码
 String Batch_number = "";
 String Unique_code ="";
@@ -35,18 +46,9 @@ void setup() {
     pinMode(CHECK_MINUS_BUTTON,INPUT_PULLUP);
     pinMode(CHECK_PLUS_BUTTON,INPUT_PULLUP);
     pinMode(CONFIRM_BUTTON,INPUT_PULLUP);
-  
-    //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
+
     WiFiManager wm;
 
-    // reset settings - wipe stored credentials for testing
-    // these are stored by the esp library
-    // wm.resetSettings();
-
-    // Automatically connect using saved credentials,
-    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
-    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
-    // then goes into a blocking loop awaiting configuration and will return success result
 
     bool res;
     res = wm.autoConnect(); 
@@ -65,6 +67,14 @@ void setup() {
         //digitalWrite(LED_BUILTIN,LOW);
     }
     SegDisplayinit();
+    TickerDisplay.attach_ms(20, [](){
+      int val = Weight_val.toInt();
+      if(val > 9999){
+        SegWrite("lower","EEEE");
+      }else{
+        SegWrite("lower",intToString4(val));
+      }
+    });
 }
 
 void loop() {
@@ -76,7 +86,9 @@ void loop() {
   // Serial.println(Get_Weight());
   //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
   // SegWrite("upper",Phone_number);  
-  SegWrite("lower",intToString4(Weight_val.toInt()));  
+  // SegWrite("lower",intToString4(Weight_val.toInt()));
+  // Serial.print("[RAW Weight] ");
+  // Serial.println(HX711_Read());
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编码?
@@ -110,6 +122,8 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
       Serial.println(User_name);
       Serial.println(Phone_number);
       SegWrite("upper", Phone_number);
+      Serial.println("[phone]"+Phone_number);
+      lockWeight = false;
     }
     else return;
   }
