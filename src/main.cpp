@@ -20,13 +20,15 @@ String base_url = "/hello";
 
 Ticker TickerDisplay;
 int tickerDispalycount = 0;
+
+
 void ScanQRcode();
 String intToString4(int number);
 void setup() {
     EEPROM.begin(1024);
     Serial.begin(9600);
-    pinMode(LED_BUILTIN,OUTPUT);
-    digitalWrite(LED_BUILTIN,HIGH);
+    // pinMode(LED_BUILTIN,OUTPUT);
+    // digitalWrite(LED_BUILTIN,HIGH);
     Init_Hx711();//需要和单片机共地
 
     pinMode(ZERO_BUTTON,INPUT_PULLUP);
@@ -53,27 +55,28 @@ void setup() {
         Serial.println("please reset to try again...");
         while(1){
           delay(1000);
-          digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+          //digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         }
         // ESP.restart();
     } 
     else {
         //if you get here you have connected to the WiFi    
         Serial.println("connected...yeey :)");
-        digitalWrite(LED_BUILTIN,LOW);
+        //digitalWrite(LED_BUILTIN,LOW);
     }
     SegDisplayinit();
 }
 
 void loop() {
+  if(!lockWeight){Weight_val = Get_Weight();}
   ScanQRcode();
   weightConfig(); //是否需要更新毛皮?
   UploadData(IS_POST, remote_host, base_url, Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val);
-  Serial.print("weight: ");
-  Serial.println(Get_Weight());
-  delay(1000);
+  // Serial.print("weight: ");
+  // Serial.println(Get_Weight());
   //UploadData(Production_base, Batch_number, Unique_code, User_name, Phone_number, Weight_val,0); 
-  SegWrite("lower",intToString4(Get_Weight()));  
+  // SegWrite("upper",Phone_number);  
+  SegWrite("lower",intToString4(Weight_val.toInt()));  
 }
 
 void ScanQRcode(){  //扫描生产编号或人员编码?
@@ -96,14 +99,17 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
       Unique_code  = strtok(NULL,batchsymbol);
       Serial.println(Production_base);
       Serial.println(Batch_number);
-      Serial.println(Unique_code);      
+      Serial.println(Unique_code);
+      lockWeight = true;
+      Serial.print("[lock]lockWeight state");
+      Serial.println(lockWeight);
     }
     else if( strstr(buffer,staffsymbol) ){//判断为员工码
       User_name = strtok(buffer,staffsymbol);
       Phone_number = strtok(NULL,batchsymbol);
       Serial.println(User_name);
       Serial.println(Phone_number);
-      SegWrite("lower", Phone_number);
+      SegWrite("upper", Phone_number);
     }
     else return;
   }
@@ -115,7 +121,7 @@ String intToString4(int number) {
   String result = String(lastFour);
   // 补零直到长度达到4
   for(int i =  result.length(); i < 4; i++){
-    result = "0" + result;
+    result = "-" + result;
   }
   return result;
 }
