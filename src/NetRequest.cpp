@@ -61,28 +61,32 @@ void HTTPS_request(String method, String host, String url, String payload)
  * 
  * @return 返回1，表示函数执行完成
  */
-int UploadData(bool isGet, String host, String path, String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight){ 
+int UploadData(bool isGet, String host, String path, String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight){
 
   Serial.print(host);
   Serial.println(path);
-
-  if (!isGet){
-    String payload = "{";
-    payload += "\"base\":\"" + String(baseName) + "\", ";
-    payload += "\"batchNo\":\"" + String(batchNo) + "\", ";
-    payload += "\"id\":\"" + String(boxID) + "\", ";
-    payload += "\"name\":\"" + String(employerName) + "\", ";
-    payload += "\"phone\":\"" + String(employerPhone) + "\", ";
-    payload += "\"weight\":" + String(weight);
-    payload += "}";
-    Serial.println(payload);
-    HTTPS_request("POST", host, path, payload);
-  }
-  else if (isGet)
-  {
-    path += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
-    Serial.println(path);
-    HTTPS_request("GET",host, path);
-  }
+  if(digitalRead(CONFIRM_BUTTON) == LOW){
+    delay(50);
+    if(digitalRead(CONFIRM_BUTTON) == LOW){
+      if (!isGet){
+        String payload = "{";
+        payload += "\"base\":\"" + String(baseName) + "\", ";
+        payload += "\"batchNo\":\"" + String(batchNo) + "\", ";
+        payload += "\"id\":\"" + String(boxID) + "\", ";
+        payload += "\"name\":\"" + String(employerName) + "\", ";
+        payload += "\"phone\":\"" + String(employerPhone) + "\", ";
+        payload += "\"weight\":" + String(weight);
+        payload += "}";
+        Serial.println(payload);
+        HTTPS_request("POST", host, path, payload);
+      }
+      else if (isGet)
+      {
+        path += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
+        Serial.println(path);
+        HTTPS_request("GET",host, path);
+      }
+    }
+  } 
   return 1;
 }

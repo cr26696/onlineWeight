@@ -6,6 +6,10 @@
 #include "ESP8266HTTPClient.h"
 #include "WiFiClientSecureBearSSL.h"
 
+#define CONFIRM_BUTTON D2
+#define IS_POST 0
+#define IS_GET 1
+
 void HTTPS_request(String method, String host, String url, String payload = "");
 //上传一条信息数据
 int UploadData(bool isGet, String host, String path, String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight);
