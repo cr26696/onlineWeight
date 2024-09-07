@@ -2,12 +2,15 @@
 #include "NetRequest.h"
 
 #include "Arduino.h"
+
+volatile bool lockWeight = false;
+
 /**
  * 功能: http请求
  * @param method: 请求方式 GET/POST (String)
  * @param host: 请求主机地址 (String)
  */
-void HTTPS_request(String method, String host, String url, String payload)
+byte HTTPS_request(String method, String host, String url, String payload)
 {
     std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
 
@@ -17,34 +20,42 @@ void HTTPS_request(String method, String host, String url, String payload)
 
     HTTPClient https;
     int httpCode = -1;
+    String response = "-1";
     Serial.print("[HTTPS] begin...\n");
-    if (https.begin(*client, host)) {  // HTTPS
+    if (https.begin(*client, host, 443, url, true)) {  // HTTPS
       if(method=="GET"){
+        Serial.print("[HTTPS] GET...\n");
         httpCode = https.GET();
-        Serial.print("[HTTPS] GET...\n");
-        Serial.print("[HTTPS] GET...\n");
       }
       else if(method=="POST")
       {
-        httpCode = https.POST(payload);
         Serial.print("[HTTPS] POST...\n");
+        https.addHeader("Content-Type", "application/json");
+        httpCode = https.POST(payload);
       }
+    }else{
+      Serial.print("[HTTPS] begin failed!!\n");
+      return -1;
     }
     if (httpCode > 0) {
       Serial.print("[HTTPS] Got code: ");
       Serial.println(httpCode);
       // file found at server
       if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-        String response = https.getString();
-        Serial.println(response);//请求响应返回内容
+        response = https.getString();
+        Serial.println(response);//
       } else {
         Serial.print("[HTTPS] Failed, error: ");
         Serial.println(https.errorToString(httpCode));
       }
       https.end();
     }else {
-      Serial.printf("[HTTPS] Unable to connect\n");
+      Serial.print("[HTTPS] Unable to connect, code :");
+      Serial.println(httpCode);
     }
+
+    return (byte)response.toInt();
+
 }
 
 
@@ -63,11 +74,12 @@ void HTTPS_request(String method, String host, String url, String payload)
  */
 int UploadData(bool isGet, String host, String path, String baseName, String batchNo, String boxID, String employerName, String employerPhone, String weight){
 
-  Serial.print(host);
-  Serial.println(path);
   if(digitalRead(CONFIRM_BUTTON) == LOW){
     delay(50);
     if(digitalRead(CONFIRM_BUTTON) == LOW){
+      Serial.print("[Upload]full path: ");
+      Serial.print(host);
+      Serial.println(path);
       if (!isGet){
         String payload = "{";
         payload += "\"base\":\"" + String(baseName) + "\", ";
@@ -77,15 +89,23 @@ int UploadData(bool isGet, String host, String path, String baseName, String bat
         payload += "\"phone\":\"" + String(employerPhone) + "\", ";
         payload += "\"weight\":" + String(weight);
         payload += "}";
+        Serial.print("[Upload]payload: ");
         Serial.println(payload);
-        HTTPS_request("POST", host, path, payload);
+        byte state = HTTPS_request("POST", host, path, payload);
+        Serial.print("[Upload]request state: ");
+        Serial.println(state);
+        lockWeight = false;
+        
       }
       else if (isGet)
       {
         path += "/" + baseName + "/" + batchNo + "/" + boxID + "/" + employerName + "/" + employerPhone + "/" + weight;
         Serial.println(path);
-        HTTPS_request("GET",host, path);
+        if(HTTPS_request("GET",host, path) == 200){
+          lockWeight = false;
+        }
       }
+      while(digitalRead(CONFIRM_BUTTON)==LOW){}
     }
   } 
   return 1;
