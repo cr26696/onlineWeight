@@ -1,51 +1,48 @@
 #include<SegDisplay.h>
-
-void SegDisplayinit()
+//构造函数
+SegDisplay::SegDisplay()
 {
   Init_MAX7219();
-  SegWrite("full","BBBBBBBB");
 }
-
-
-uint8_t SegCharToNum(char c){
-  if(c=='0')return 0;
-  else if(c=='1')return 1;
-  else if(c=='2')return 2;
-  else if(c=='3')return 3;
-  else if(c=='4')return 4;
-  else if(c=='5')return 5;
-  else if(c=='6')return 6;
-  else if(c=='7')return 7;
-  else if(c=='8')return 8;
-  else if(c=='9')return 9;
-  else if(c=='-')return 10;
-  else if(c=='E')return 11;
-  else if(c=='H')return 12;
-  else if(c=='L')return 13;
-  else if(c=='P')return 14;
-  else return 15;
+//完全刷新
+void SegDisplay::refresh(){
+  for(int i = 0; i < 8; i++){
+    if(_needRefresh[i]){
+      Write_Max7219(i+1,_numbers[i]);
+      _needRefresh[i] = false;
+    }
+  }
+}
+/**
+ * 从字符串识别改变哪些变量
+ * @param str 要识别的字符串，长度8
+ */
+void SegDisplay::updateParam(String str){
+  byte length = str.length();
+  if(length == 8){
+    for(int i = 0 ; i<8; i++)
+    {
+      _needRefresh[i] = str[i] != _numbers[length - i - 1];
+      _numbers[length - i - 1] = str[i];
+    }
+  }else{
+    Serial.println("[SegDisplay]String length error");
+  }
+}
+/**
+ * @param Content 写内容,8位String
+ */
+void SegDisplay::display(String Content){
+  updateParam(Content);
 }
 /**
  * 向数码管写数据
- * @param writePart "full" / "upper" / "lower"
+ * @param writePart 操作部分 "upper" / "lower"
+ * @param str 写入内容,4位String
  */
-void SegWrite(String writePart, String str){
-  //Serial.println("[SegDisplay] SegWrite："+ str);
-  int i = 1;//默认起始Str
-  int SegDisEndNumAddr = 8;//默认结束
-  int strlen = str.length();
-  if(writePart == "full"){
-    if(strlen != 8) Serial.println("[SegDisplay]fullContent error"+str);
-  }else {
-    //半边控制
-    if(strlen != 4){Serial.println("[SegDisplay]" + writePart + "Content error,content: " + str);} 
-    else{
-      if(writePart == "upper") i = 5;
-      else if(writePart == "lower") SegDisEndNumAddr = 4;
-      else Serial.println("[SegDisplay]writePart error");
-    }
+void SegDisplay::display(String writePart, String str){
+  if(writePart == "upper"){
+    str = "0000" + str;
   }
-  for(;i <= SegDisEndNumAddr; i++,strlen--){
-    Write_Max7219(i,SegCharToNum(str[strlen - 1]));
-  }
+  updateParam(Content);
 }
