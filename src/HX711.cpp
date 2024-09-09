@@ -72,7 +72,7 @@ void modifyGapValue(){
 unsigned long Get_Weight()
 {
 	unsigned long Weight_Shiwu = HX711_Read();
-	return Weight_Shiwu > Weight_Maopi? (Weight_Shiwu - Weight_Maopi)/GapValue : 0;				//获取实物的克
+	return Weight_Shiwu > Weight_Maopi? (unsigned long)(floor((Weight_Shiwu - Weight_Maopi)/(float)GapValue)) : 0;				//获取实物的克
 }
 
 //****************************************************

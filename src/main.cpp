@@ -10,10 +10,10 @@
 /*
 D0 711_DT
 D1 711_CK
-D2 CHECK_M
+D2 CHECK_M //pulldown when pressed
 D3 CHECK_P
 D4 QUPI
-D5 CONFIRM
+D5 CONFIRM 
 D6 MAX_DIN
 D7 MAX_CS
 D8 MAX_CLK
@@ -31,13 +31,14 @@ String base_url = "/hello";
 
 Ticker TickerDisplay;
 int tickerDispalycount = 0;
-
+bool weightflip = false;
+unsigned long lastWeightFlick = 0;
 
 void ScanQRcode();
 String intToString4(int number);
 void setup() {
     EEPROM.begin(1024);
-    Serial.begin(9600);
+    Serial.begin(115200);
     // pinMode(LED_BUILTIN,OUTPUT);
     // digitalWrite(LED_BUILTIN,HIGH);
     Init_Hx711();//需要和单片机共地
@@ -67,14 +68,28 @@ void setup() {
         //digitalWrite(LED_BUILTIN,LOW);
     }
     SegDisplayinit();
-    TickerDisplay.attach_ms(20, [](){
+    TickerDisplay.attach_ms(20, []()
+      {
       int val = Weight_val.toInt();
-      if(val > 9999){
-        SegWrite("lower","EEEE");
+      if(lockWeight){
+        if(millis() - lastWeightFlick > 500){
+          lastWeightFlick = millis();
+            weightflip = !weightflip;
+            // Serial.println("display blink");
+          }
+              if(val > 9999){
+              SegWrite("lower","EEEE");
+            }else{
+              SegWrite("lower",weightflip?"BBBB":intToString4(val));
+            }
       }else{
-        SegWrite("lower",intToString4(val));
-      }
-    });
+          if(val > 9999){
+            SegWrite("lower","EEEE");
+          }else{
+            SegWrite("lower",intToString4(val));
+          }
+      } 
+      });
 }
 
 void loop() {
@@ -98,9 +113,9 @@ void ScanQRcode(){  //扫描生产编号或人员编码?
 
   if(Serial.available()>0){
     String QR_val = "";
+    Weight_val = Get_Weight();
     QR_val = Serial.readString();
     Serial.println(QR_val);
-    Weight_val = Get_Weight();
     Serial.print("get SangYe weight: ");
     Serial.println(Weight_val);
     char buffer[QR_val.length()+1];

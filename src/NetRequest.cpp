@@ -94,7 +94,7 @@ int UploadData(bool isGet, String host, String path, String baseName, String bat
         byte state = HTTPS_request("POST", host, path, payload);
         Serial.print("[Upload]request state: ");
         Serial.println(state);
-        lockWeight = false;
+        lockWeight = !(state == 200);
         
       }
       else if (isGet)
